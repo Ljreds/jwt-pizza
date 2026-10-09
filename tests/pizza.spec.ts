@@ -67,8 +67,8 @@ test('franchise as non-franchise owner', async ({ page }) => {
 });
 
 test('Actions of franchise owner', async ({ page }) => {
-  // await basicInit(page);
-  await page.goto('/');
+  await basicInit(page);
+  // await page.goto('/');     
 
 
   await page.getByLabel('Global').getByRole('link', { name: 'Franchise' }).click();

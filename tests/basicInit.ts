@@ -11,6 +11,13 @@ export async function basicInit(page: Page): Promise<void> {
       password: 'diner',
       roles: [{ role: 'diner' as Role.Diner }],
     },
+    'f@jwt.com': {
+      id: '2',
+      name: 'pizza franchisee',
+      email: 'f@jwt.com',
+      password: 'franchisee',
+      roles: [{ role: 'franchisee' as Role.Franchisee }],
+    },
   };
 
   await page.route('**/api/auth', async (route) => {
@@ -81,17 +88,47 @@ export async function basicInit(page: Page): Promise<void> {
     await route.fulfill({ json: menuRes });
   });
 
-  await page.route('**/api/franchise*', async (route) => {
-    const franchiseRes = {
-      franchises: [
-        { id: 2, name: 'Pizza pie', stores: [] },
-        { id: 1, name: 'pizzaPocket', stores: [{ id: 1, name: 'SLC' }] },
-      ],
-      more: false,
-    };
-    expect(route.request().method()).toBe('GET');
-    await route.fulfill({ json: franchiseRes });
+  const pizzaPocket = {
+    id: 1,
+    name: 'pizzaPocket',
+    admins: [{ id: 2, name: 'pizza franchisee', email: 'f@jwt.com' }],
+    stores: [{ id: 1, name: 'SLC', totalRevenue: 0.0808 }],
+  };
+  const franchiseRes = {
+    franchises: [
+      { id: 2, name: 'Pizza pie', stores: [] },
+      pizzaPocket,
+    ],
+    more: false,
+  };
+
+  await page.route(/\/api\/franchise(?:\/.*)?(?:\?.*)?$/, async (route) => {
+    const request = route.request();
+    const method = request.method();
+    const pathname = new URL(request.url()).pathname;
+
+    if (method === 'GET') {
+      await route.fulfill({
+        json: pathname === '/api/franchise/2' ? [pizzaPocket] : franchiseRes,
+      });
+      return;
+    }
+
+    if (method === 'POST') {
+      expect(pathname).toBe('/api/franchise/1/store');
+      expect(request.postDataJSON()).toMatchObject({ id: '', name: 'Provo' });
+      const store = { id: 53, name: 'Provo', totalRevenue: 0 };
+      pizzaPocket.stores.push(store);
+      await route.fulfill({ json: store });
+      return;
+    }
+
+    expect(method).toBe('DELETE');
+    expect(pathname).toBe('/api/franchise/1/store/53');
+    pizzaPocket.stores = pizzaPocket.stores.filter((store) => store.id !== 53);
+    await route.fulfill({ json: null });
   });
+
 
   await page.route('**/api/order', async (route) => {
     const method = route.request().method();
