@@ -58,8 +58,7 @@ test('login', async ({ page }) => {
 });
 
 test('franchise as non-franchise owner', async ({ page }) => {
-  // await basicInit(page);
-  await page.goto('/');
+  await basicInit(page);
 
 
   await page.getByLabel('Global').getByRole('link', { name: 'Franchise' }).click();
@@ -67,7 +66,7 @@ test('franchise as non-franchise owner', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('If you are already a franchisee, pleaseloginusing your franchise account');
 });
 
-test('franchise as franchise owner', async ({ page }) => {
+test('Actions of franchise owner', async ({ page }) => {
   // await basicInit(page);
   await page.goto('/');
 
@@ -80,7 +79,20 @@ test('franchise as franchise owner', async ({ page }) => {
   await page.getByPlaceholder('Password').click();
   await page.getByPlaceholder('Password').fill('franchisee');
   await page.getByRole('button', { name: 'Login' }).click();
-  await page.getByRole('link', { name: 'franchise-dashboard' }).click();
+
   await expect(page.getByText('pizzaPocket')).toBeVisible();
   await expect(page.getByText('Everything you need to run an')).toBeVisible();
+  await page.getByRole('button', { name: 'Create store' }).click();
+
+  await page.getByPlaceholder('store name').click();
+  await page.getByPlaceholder('store name').fill('Provo');
+  await expect(page.getByText('Create store')).toBeVisible();
+  await page.getByRole('button', { name: 'Create' }).click();
+
+  await expect(page.locator('tbody')).toContainText('Provo');
+
+  await page.getByRole('row', { name: 'Provo 0 ₿ Close' }).getByRole('button').click();
+  await expect(page.getByText('Sorry to see you go')).toBeVisible();
+  await page.getByRole('button', { name: 'Close' }).click();
+
 });
