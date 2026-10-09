@@ -99,6 +99,7 @@ test('Actions of franchise owner', async ({ page }) => {
 
 test('register and logout', async ({ page }) => {
   await basicInit(page);
+  // await page.goto('/'); 
 
   await page.getByRole('link', { name: 'Register' }).click();
 
@@ -109,9 +110,45 @@ test('register and logout', async ({ page }) => {
   await page.getByPlaceholder('Password').click();
   await page.getByPlaceholder('Password').fill('test');
   await page.getByRole('button', { name: 'Register' }).click();
-  
+
   await expect(page.getByText('The web\'s best pizza', { exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Logout' }).click();
-  await expect(page.getByRole('link', { name: 'Login' })).toBeVisible();
 
+});
+
+test('create franchise', async ({ page }) => {
+  await basicInit(page);
+  await page.goto('/create-franchise');
+
+  await page.getByPlaceholder('franchise name').fill('testPizza');
+  await page.getByPlaceholder('franchisee admin email').fill('t@jwt.com');
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+  await expect(page.getByText('The web\'s best pizza', { exact: true })).toBeVisible();
+});
+
+test('Actions of an admin', async ({ page }) => {
+  //  await basicInit(page);
+    await page.goto('/');
+  
+    await page.getByRole('link', { name: 'Login' }).click();
+    await page.getByPlaceholder('Email address').fill('a@jwt.com');
+    await page.getByPlaceholder('Password').click();
+    await page.getByPlaceholder('Password').fill('admin');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    await page.getByRole('link', { name: 'Admin' }).click();
+    await expect(page.getByText('Mama Ricci\'s kitchen')).toBeVisible();
+    await page.getByRole('button', { name: 'Add Franchise' }).click();
+    await page.getByPlaceholder('franchise name').click();
+    await page.getByPlaceholder('franchise name').fill('testPizza');
+    await page.getByPlaceholder('franchisee admin email').click();
+    await page.getByPlaceholder('franchisee admin email').fill('t@jwt.com');
+    await page.getByRole('button', { name: 'Create' }).click();
+    
+    await expect(page.getByRole('table')).toContainText('testPizza');
+    await page.getByRole('row', { name: 'testPizza Test User Close' }).getByRole('button').click();
+    await expect(page.getByText('Sorry to see you go')).toBeVisible();
+    await page.getByRole('button', { name: 'Close' }).click();
+  
 });

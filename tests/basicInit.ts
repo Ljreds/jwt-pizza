@@ -1,5 +1,5 @@
 import { expect, type Page } from '@playwright/test';
-import type { Role, User } from '../src/service/pizzaService';
+import type { Franchise, FranchiseList, Role, User } from '../src/service/pizzaService';
 
 export async function basicInit(page: Page): Promise<void> {
   let loggedInUser: User | undefined;
@@ -118,15 +118,15 @@ export async function basicInit(page: Page): Promise<void> {
     await route.fulfill({ json: menuRes });
   });
 
-  const pizzaPocket = {
-    id: 1,
+  const pizzaPocket: Franchise = {
+    id: '1',
     name: 'pizzaPocket',
-    admins: [{ id: 2, name: 'pizza franchisee', email: 'f@jwt.com' }],
-    stores: [{ id: 1, name: 'SLC', totalRevenue: 0.0808 }],
+    admins: [{ id: '2', name: 'pizza franchisee', email: 'f@jwt.com' }],
+    stores: [{ id: '1', name: 'SLC', totalRevenue: 0.0808 }],
   };
-  const franchiseRes = {
+  const franchiseRes: FranchiseList = {
     franchises: [
-      { id: 2, name: 'Pizza pie', stores: [] },
+      { id: '2', name: 'Pizza pie', stores: [] },
       pizzaPocket,
     ],
     more: false,
@@ -138,27 +138,77 @@ export async function basicInit(page: Page): Promise<void> {
     const pathname = new URL(request.url()).pathname;
 
     if (method === 'GET') {
+      const isFranchiseDetail = /^\/api\/franchise\/[^/]+$/.test(pathname);
       await route.fulfill({
-        json: pathname === '/api/franchise/2' ? [pizzaPocket] : franchiseRes,
+        json: isFranchiseDetail
+          ? franchiseRes.franchises.includes(pizzaPocket)
+            ? [pizzaPocket]
+            : []
+          : franchiseRes,
       });
       return;
     }
 
     if (method === 'POST') {
-      expect(pathname).toBe('/api/franchise/1/store');
-      expect(request.postDataJSON()).toMatchObject({ id: '', name: 'Provo' });
-      const store = { id: 53, name: 'Provo', totalRevenue: 0 };
-      pizzaPocket.stores.push(store);
-      await route.fulfill({ json: store });
+      expect(pathname).toBe('/api/franchise');
+      const franchiseRequest = request.postDataJSON();
+      expect(franchiseRequest).toMatchObject({
+        stores: [],
+        id: '',
+        name: 'testPizza',
+        admins: [{ email: 't@jwt.com' }],
+      });
+      const franchise: Franchise = { ...franchiseRequest, id: '3', stores: [] };
+      franchiseRes.franchises.push(franchise);
+      await route.fulfill({ json: franchise });
       return;
     }
 
     expect(method).toBe('DELETE');
-    expect(pathname).toBe('/api/franchise/1/store/53');
-    pizzaPocket.stores = pizzaPocket.stores.filter((store) => store.id !== 53);
+    const franchiseMatch = pathname.match(/^\/api\/franchise\/([^/]+)$/);
+    expect(franchiseMatch).not.toBeNull();
+    if (!franchiseMatch) {
+      throw new Error(`Unexpected franchise DELETE path: ${pathname}`);
+    }
+    franchiseRes.franchises = franchiseRes.franchises.filter((franchise) => franchise.id !== franchiseMatch[1]);
     await route.fulfill({ json: null });
   });
 
+  await page.route(/\/api\/franchise\/[^/]+\/store$/, async (route) => {
+    const request = route.request();
+    expect(request.method()).toBe('POST');
+    expect(request.postDataJSON()).toMatchObject({ id: '', name: 'Provo' });
+    const pathname = new URL(request.url()).pathname;
+    const franchiseMatch = pathname.match(/^\/api\/franchise\/([^/]+)\/store$/);
+    expect(franchiseMatch).not.toBeNull();
+    if (!franchiseMatch) {
+      throw new Error(`Unexpected store POST path: ${pathname}`);
+    }
+    const franchise = franchiseRes.franchises.find((item) => item.id === franchiseMatch[1]);
+    if (!franchise) {
+      throw new Error(`Franchise ${franchiseMatch[1]} was not found`);
+    }
+    const store = { id: '53', name: 'Provo', totalRevenue: 0 };
+    franchise.stores.push(store);
+    await route.fulfill({ json: store });
+  });
+
+  await page.route(/\/api\/franchise\/[^/]+\/store\/[^/]+$/, async (route) => {
+    const request = route.request();
+    expect(request.method()).toBe('DELETE');
+    const pathname = new URL(request.url()).pathname;
+    const storeMatch = pathname.match(/^\/api\/franchise\/([^/]+)\/store\/([^/]+)$/);
+    expect(storeMatch).not.toBeNull();
+    if (!storeMatch) {
+      throw new Error(`Unexpected store DELETE path: ${pathname}`);
+    }
+    const [, franchiseId, storeId] = storeMatch;
+    const franchise = franchiseRes.franchises.find((item) => item.id === franchiseId);
+    if (franchise) {
+      franchise.stores = franchise.stores.filter((store) => store.id !== storeId);
+    }
+    await route.fulfill({ json: null });
+  });
 
   await page.route('**/api/order', async (route) => {
     const method = route.request().method();
