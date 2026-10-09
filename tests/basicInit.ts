@@ -21,29 +21,59 @@ export async function basicInit(page: Page): Promise<void> {
   };
 
   await page.route('**/api/auth', async (route) => {
-    expect(route.request().method()).toBe('PUT');
-    const loginReq = route.request().postDataJSON();
-    const user = validUsers[loginReq.email];
+    const request = route.request();
+    const method = request.method();
 
-    if (!user || user.password !== loginReq.password) {
-      await route.fulfill({
-        status: 401,
-        json: { message: 'Invalid email or password' },
-      });
+    if (method === 'PUT') {
+      const loginReq = request.postDataJSON();
+      const user = validUsers[loginReq.email];
+
+      if (!user || user.password !== loginReq.password) {
+        await route.fulfill({
+          status: 401,
+          json: { message: 'Invalid email or password' },
+        });
+        return;
+      }
+
+      loggedInUser = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        roles: user.roles,
+      };
+      await route.fulfill({ json: { user: loggedInUser, token: 'abcdef' } });
       return;
     }
 
-    loggedInUser = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      roles: user.roles,
-    };
-    const loginRes = {
-      user: loggedInUser,
-      token: 'abcdef',
-    };
-    await route.fulfill({ json: loginRes });
+    if (method === 'POST') {
+      expect(request.postDataJSON()).toMatchObject({
+        name: 'Test User',
+        email: 'r@jwt.com',
+        password: 'test',
+      });
+      const registeredEmail = 'r@jwt.com';
+      const user: User = {
+        id: '5',
+        name: 'Test User',
+        email: registeredEmail,
+        password: 'test',
+        roles: [{ role: 'diner' as Role.Diner }],
+      };
+      validUsers[registeredEmail] = user;
+      loggedInUser = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        roles: user.roles,
+      };
+      await route.fulfill({ json: { user: loggedInUser, token: 'abcdef' } });
+      return;
+    }
+
+    expect(method).toBe('DELETE');
+    loggedInUser = undefined;
+    await route.fulfill({ json: {} });
   });
 
   await page.route('**/api/order/menu', async (route) => {
