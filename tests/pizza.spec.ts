@@ -1,4 +1,4 @@
-import { test, expect } from 'playwright-test-coverage';
+import { test, expect } from './testSetup';
 import { basicInit } from './basicInit';
 
 test('home page', async ({ page }) => {
@@ -137,15 +137,31 @@ test('Actions of an admin', async ({ page }) => {
     await page.getByPlaceholder('Password').fill('admin');
     await page.getByRole('button', { name: 'Login' }).click();
 
+
+
     await page.getByRole('link', { name: 'Admin' }).click();
     await expect(page.getByText('Mama Ricci\'s kitchen')).toBeVisible();
+
+    await page.getByPlaceholder('Filter franchises').click();
+    await page.getByPlaceholder('Filter franchises').fill('Pizza pie');
+    await page.getByRole('button', { name: 'Submit' }).click();
+    
+
+    await page.getByPlaceholder('Filter franchises').click();
+    await page.getByPlaceholder('Filter franchises').fill('Pizza pie');
+
+    await expect(page.getByRole('cell', { name: 'Pizza pie', exact: true })).toBeVisible();
+    await page.getByPlaceholder('Filter franchises').fill('');
+    await page.getByRole('button', { name: 'Submit' }).click();
+    await expect(page.getByRole('cell', { name: 'pizzaPocket', exact: true })).toBeVisible();
+
     await page.getByRole('button', { name: 'Add Franchise' }).click();
     await page.getByPlaceholder('franchise name').click();
     await page.getByPlaceholder('franchise name').fill('testPizza');
     await page.getByPlaceholder('franchisee admin email').click();
     await page.getByPlaceholder('franchisee admin email').fill('t@jwt.com');
     await page.getByRole('button', { name: 'Create' }).click();
-    
+
     await expect(page.getByRole('table')).toContainText('testPizza');
     await page.getByRole('row', { name: 'testPizza Test User Close' }).getByRole('button').click();
     await expect(page.getByText('Sorry to see you go')).toBeVisible();
