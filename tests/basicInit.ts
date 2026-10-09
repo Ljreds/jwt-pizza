@@ -18,6 +18,13 @@ export async function basicInit(page: Page): Promise<void> {
       password: 'franchisee',
       roles: [{ role: 'franchisee' as Role.Franchisee }],
     },
+    'a@jwt.com': {
+      id: '1',
+      name: '',
+      email: 'a@jwt.com',
+      password: 'admin',
+      roles: [{ role: 'admin' as Role.Admin }],
+    }
   };
 
   await page.route('**/api/auth', async (route) => {
@@ -158,7 +165,12 @@ export async function basicInit(page: Page): Promise<void> {
         name: 'testPizza',
         admins: [{ email: 't@jwt.com' }],
       });
-      const franchise: Franchise = { ...franchiseRequest, id: '3', stores: [] };
+      const franchise: Franchise = {
+        ...franchiseRequest,
+        id: '3',
+        admins: [{ email: 't@jwt.com', name: 'Test User' }],
+        stores: [],
+      };
       franchiseRes.franchises.push(franchise);
       await route.fulfill({ json: franchise });
       return;

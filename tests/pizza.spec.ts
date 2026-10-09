@@ -128,8 +128,8 @@ test('create franchise', async ({ page }) => {
 });
 
 test('Actions of an admin', async ({ page }) => {
-  //  await basicInit(page);
-    await page.goto('/');
+    await basicInit(page);
+    // await page.goto('/');
   
     await page.getByRole('link', { name: 'Login' }).click();
     await page.getByPlaceholder('Email address').fill('a@jwt.com');
