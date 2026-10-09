@@ -10,7 +10,6 @@ test('home page', async ({ page }) => {
 test('purchase with login', async ({ page }) => {
   await basicInit(page);
 
-    await page.goto('http://localhost:5173/');
   await page.getByRole('button', { name: 'Order now' }).click();
 
   await expect(page.getByText('Awesome is a click away')).toBeVisible();
@@ -43,9 +42,8 @@ test('purchase with login', async ({ page }) => {
 });
 
 test('login', async ({ page }) => {
-  // await basicInit(page);
+  await basicInit(page);
 
-  await page.goto('http://localhost:5173/');
   await page.getByRole('link', { name: 'Login' }).click();
   await page.getByPlaceholder('Email address').fill('d@jwt.com');
   await page.getByPlaceholder('Password').click();
@@ -57,4 +55,32 @@ test('login', async ({ page }) => {
 
   await expect(page.getByText('Your pizza kitchen')).toBeVisible();
   await expect(page.getByRole('main')).toContainText('pizza diner');
+});
+
+test('franchise as non-franchise owner', async ({ page }) => {
+  // await basicInit(page);
+  await page.goto('/');
+
+
+  await page.getByLabel('Global').getByRole('link', { name: 'Franchise' }).click();
+  await expect(page.getByText('So you want a piece of the')).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('If you are already a franchisee, pleaseloginusing your franchise account');
+});
+
+test('franchise as franchise owner', async ({ page }) => {
+  // await basicInit(page);
+  await page.goto('/');
+
+
+  await page.getByLabel('Global').getByRole('link', { name: 'Franchise' }).click();
+  await page.getByRole('link', { name: 'login', exact: true }).click();
+
+  await page.getByPlaceholder('Email address').click();
+  await page.getByPlaceholder('Email address').fill('f@jwt.com');
+  await page.getByPlaceholder('Password').click();
+  await page.getByPlaceholder('Password').fill('franchisee');
+  await page.getByRole('button', { name: 'Login' }).click();
+  await page.getByRole('link', { name: 'franchise-dashboard' }).click();
+  await expect(page.getByText('pizzaPocket')).toBeVisible();
+  await expect(page.getByText('Everything you need to run an')).toBeVisible();
 });

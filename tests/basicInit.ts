@@ -94,6 +94,20 @@ export async function basicInit(page: Page): Promise<void> {
   });
 
   await page.route('**/api/order', async (route) => {
+    const method = route.request().method();
+
+    if (method === 'GET') {
+      await route.fulfill({
+        json: {
+          id: '3',
+          dinerId: loggedInUser?.id ?? '3',
+          orders: [],
+        },
+      });
+      return;
+    }
+
+    expect(method).toBe('POST');
     const orderReq = {
       items: [
         { menuId: 2, description: 'Pepperoni', price: 0.0042 },
@@ -114,7 +128,6 @@ export async function basicInit(page: Page): Promise<void> {
       },
       jwt: 'abcdefg',
     };
-    expect(route.request().method()).toBe('POST');
     expect(route.request().postDataJSON()).toMatchObject(orderReq);
     await route.fulfill({ json: orderRes });
   });
@@ -132,4 +145,7 @@ export async function basicInit(page: Page): Promise<void> {
 
     await route.fulfill({ json: loggedInUser });
   });
+
+  await page.goto('/');
+
 }
