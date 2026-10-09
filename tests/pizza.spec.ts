@@ -1,4 +1,4 @@
-import { test, expect } from './testSetup';
+import { test, expect } from './testsetup';
 import { basicInit } from './basicInit';
 
 test('home page', async ({ page }) => {
