@@ -231,7 +231,7 @@ export async function basicInit(page: Page): Promise<void> {
         { menuId: 1, description: 'Veggie', price: 0.0038 },
       ],
       storeId: '1',
-      franchiseId: 1,
+      franchiseId: '1',
     };
     const orderRes = {
       order: {
@@ -240,7 +240,7 @@ export async function basicInit(page: Page): Promise<void> {
           { menuId: 1, description: 'Veggie', price: 0.0038 },
         ],
         storeId: '1',
-        franchiseId: 1,
+        franchiseId:'1',
         id: 61,
       },
       jwt: 'abcdefg',
