@@ -20,12 +20,21 @@ jobs:
         with:
           node-version: '22.x'
 
+        
       - name: set version
         id: set_version
         run: |
           version=$(date +'%Y%m%d.%H%M%S')
           echo "version=$version" >> "$GITHUB_OUTPUT"
           printf '{"version": "%s" }' "$version" > public/version.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:coverage
 
       - name: Build
         run: |
@@ -49,3 +58,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
