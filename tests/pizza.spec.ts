@@ -41,3 +41,20 @@ test('purchase with login', async ({ page }) => {
   await expect(page.getByRole('main')).toContainText('2');
   
 });
+
+test('login', async ({ page }) => {
+  // await basicInit(page);
+
+  await page.goto('http://localhost:5173/');
+  await page.getByRole('link', { name: 'Login' }).click();
+  await page.getByPlaceholder('Email address').fill('d@jwt.com');
+  await page.getByPlaceholder('Password').click();
+  await page.getByPlaceholder('Password').fill('diner');
+  await page.getByRole('button', { name: 'Login' }).click();
+
+
+  await page.getByRole('link', { name: 'pd' }).click();
+
+  await expect(page.getByText('Your pizza kitchen')).toBeVisible();
+  await expect(page.getByRole('main')).toContainText('pizza diner');
+});

@@ -6,7 +6,7 @@ export async function basicInit(page: Page): Promise<void> {
   const validUsers: Record<string, User> = {
     'd@jwt.com': {
       id: '3',
-      name: 'Pizza Diner',
+      name: 'pizza diner',
       email: 'd@jwt.com',
       password: 'diner',
       roles: [{ role: 'diner' as Role.Diner }],
