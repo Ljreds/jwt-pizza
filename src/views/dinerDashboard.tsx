@@ -37,6 +37,13 @@ export default function DinerDashboard(props: Props) {
   }
 
   async function updateUser() {
+    let updatedUser: User = {
+      id: user.id,
+      name: nameRef.current?.value,
+      email: emailRef.current?.value,
+      password: passwordRef.current?.value || undefined,
+      roles: user.roles,
+    };
     setTimeout(() => {
       HSOverlay.close(document.getElementById('hs-jwt-modal')!);
     }, 100);
