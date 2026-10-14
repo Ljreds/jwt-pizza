@@ -13,7 +13,7 @@
     "test:coverage": "nyc --reporter=json-summary --reporter=text playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "^1.49.1",
+    "@playwright/test": "^1.40.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.6.4",
     "@types/react": "^18.3.3",
@@ -28,6 +28,7 @@
     "vite-plugin-istanbul": "^9.0.1"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "preline": "^2.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -42,5 +43,8 @@
   "bugs": {
     "url": "https://github.com/Ljreds/jwt-pizza/issues"
   },
-  "homepage": "https://github.com/Ljreds/jwt-pizza#readme"
+  "homepage": "https://github.com/Ljreds/jwt-pizza#readme",
+  "directories": {
+    "test": "tests"
+  }
 }

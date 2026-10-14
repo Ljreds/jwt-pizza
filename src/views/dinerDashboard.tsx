@@ -33,10 +33,10 @@ export default function DinerDashboard(props: Props) {
   }
 
   async function updateUser() {
-  setTimeout(() => {
-    HSOverlay.close(document.getElementById('hs-jwt-modal')!);
-  }, 100);
-}
+    setTimeout(() => {
+      HSOverlay.close(document.getElementById('hs-jwt-modal')!);
+    }, 100);
+  } 
 
   return (
     <View title="Your pizza kitchen">
