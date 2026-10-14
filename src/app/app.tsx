@@ -24,6 +24,7 @@ import Docs from '../views/docs';
 import Breadcrumb from '../components/breadcrumb';
 import { pizzaService } from '../service/service';
 import { Role, User } from '../service/pizzaService';
+// @ts-ignore Preline is loaded for its side effects and does not provide declarations.
 import 'preline/preline';
 
 declare global {
@@ -63,7 +64,7 @@ export default function App() {
 
   const navItems = [
     { title: 'Home', to: '/', component: <Home />, display: [] },
-    { title: 'Diner', to: '/diner-dashboard', component: <DinerDashboard user={user} />, display: [] },
+    { title: 'Diner', to: '/diner-dashboard', component: <DinerDashboard user={user} setUser={setUser} />, display: [] },
     { title: 'Order', to: '/menu', component: <Menu />, display: ['nav'] },
     {
       title: 'Franchise',
@@ -86,7 +87,6 @@ export default function App() {
     { title: 'Logout', to: '/:subPath?/logout', component: <Logout setUser={setUser} />, constraints: [loggedIn], display: ['nav'] },
     { title: 'Docs', to: '/docs/:docType?', component: <Docs />, display: [] },
     { title: 'Opps', to: '*', component: <NotFound />, display: [] },
-    { title: 'Diner', to: '/diner-dashboard', component: <DinerDashboard user={user} setUser={setUser} />, display: [] },
   ];
 
   return (
