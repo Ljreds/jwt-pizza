@@ -2,9 +2,77 @@ import { test, expect } from 'playwright-test-coverage';
 import type { Page } from '@playwright/test';
 import { basicInit } from './basicInit';
 
+type MockUser = { id: string; name: string; email: string; password: string; roles: { role: string }[] };
+
+// In-memory stand-in for the auth and user endpoints, so a registered user can be updated and logged back in
+async function mockUserService(page: Page) {
+  const users: MockUser[] = [];
+  const tokens = new Map<string, string>();
+  let nextId = 10;
+
+  const publicUser = ({ password, ...user }: MockUser) => user;
+  const issueToken = (user: MockUser) => {
+    const token = `token-${user.id}-${tokens.size}`;
+    tokens.set(token, user.id);
+    return token;
+  };
+  const authedUser = (headers: Record<string, string>) => {
+    const id = tokens.get((headers['authorization'] ?? '').split(' ')[1]);
+    return users.find((u) => u.id === id);
+  };
+
+  await page.route('**/api/auth', async (route) => {
+    const request = route.request();
+    const method = request.method();
+
+    if (method === 'POST') {
+      const { name, email, password } = request.postDataJSON();
+      const user: MockUser = { id: String(nextId++), name, email, password, roles: [{ role: 'diner' }] };
+      users.push(user);
+      await route.fulfill({ json: { user: publicUser(user), token: issueToken(user) } });
+    } else if (method === 'PUT') {
+      const { email, password } = request.postDataJSON();
+      const user = users.find((u) => u.email === email && u.password === password);
+      if (!user) {
+        await route.fulfill({ status: 404, json: { message: 'unknown user' } });
+        return;
+      }
+      await route.fulfill({ json: { user: publicUser(user), token: issueToken(user) } });
+    } else {
+      expect(method).toBe('DELETE');
+      await route.fulfill({ json: { message: 'logout successful' } });
+    }
+  });
+
+  await page.route('**/api/user/me', async (route) => {
+    const user = authedUser(route.request().headers());
+    await route.fulfill(user ? { json: publicUser(user) } : { status: 401, json: { message: 'unauthorized' } });
+  });
+
+  await page.route(/\/api\/user\/\d+$/, async (route) => {
+    const request = route.request();
+    expect(request.method()).toBe('PUT');
+    const user = authedUser(request.headers());
+    if (!user || user.id !== new URL(request.url()).pathname.split('/').pop()) {
+      await route.fulfill({ status: 403, json: { message: 'unauthorized' } });
+      return;
+    }
+    const { name, email, password } = request.postDataJSON();
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.password = password || user.password;
+    await route.fulfill({ json: { user: publicUser(user), token: issueToken(user) } });
+  });
+
+  await page.route('**/api/order', async (route) => {
+    await route.fulfill({ json: { dinerId: authedUser(route.request().headers())?.id, orders: [] } });
+  });
+}
+
 test('updateUser', async ({ page }) => {
   //Register new user with random email
   const email = `user${Math.floor(Math.random() * 10000)}@jwt.com`;
+  await mockUserService(page);
   await page.goto('/');
   await page.getByRole('link', { name: 'Register' }).click();
   await page.getByRole('textbox', { name: 'Full name' }).fill('pizza diner');
@@ -52,6 +120,7 @@ test('updateUser', async ({ page }) => {
 test('updatePasswordAndEmail', async ({ page }) => {
   //Register new user with random email
   const email = `user${Math.floor(Math.random() * 10000)}@jwt.com`;
+  await mockUserService(page);
   await page.goto('/');
   await page.getByRole('link', { name: 'Register' }).click();
   await page.getByRole('textbox', { name: 'Full name' }).fill('pizza diner');
