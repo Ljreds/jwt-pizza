@@ -24,8 +24,7 @@ import Docs from '../views/docs';
 import Breadcrumb from '../components/breadcrumb';
 import { pizzaService } from '../service/service';
 import { Role, User } from '../service/pizzaService';
-// @ts-ignore Preline is loaded for its side effects and does not provide declarations.
-import 'preline/preline';
+import 'preline';
 
 declare global {
   interface Window {
