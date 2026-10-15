@@ -162,3 +162,28 @@ test('updateAsAdmin', async ({ page }) => {
   await expect(dialog).toBeHidden();
   await expect(page.getByRole('main')).toContainText('pizza admin updated');
 });
+
+test('listUsersAsAdmin', async ({ page }) => {
+  await basicInit(page);
+  await page.route(/\/api\/user(\?.*)?$/, async (route) => {
+    expect(route.request().method()).toBe('GET');
+    await route.fulfill({
+      json: {
+        users: [
+          { id: '1', name: 'pizza admin', email: 'a@jwt.com', roles: [{ role: 'admin' }] },
+          { id: '2', name: 'pizza franchisee', email: 'f@jwt.com', roles: [{ role: 'franchisee' }] },
+        ],
+        more: false,
+      },
+    });
+  });
+
+  await page.getByRole('link', { name: 'Login' }).click();
+  await page.getByPlaceholder('Email address').fill('a@jwt.com');
+  await page.getByPlaceholder('Password').fill('admin');
+  await page.getByRole('button', { name: 'Login' }).click();
+  await page.goto('/admin-dashboard');
+
+  await page.getByRole('button', { name: 'Users' }).click();
+  await expect(page.getByRole('main')).toContainText('User List');
+});
