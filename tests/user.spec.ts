@@ -292,12 +292,25 @@ test('listUsersNameFilter', async ({ page }) => {
 
 test('deleteUser', async ({ page }) => {
   const { dialog, deletedIds } = await openUserListAsAdmin(page);
-
   const row = dialog.getByRole('row', { name: /diner 02/ });
-  await expect(row).toBeVisible();
+  const confirmation = dialog.getByRole('alert');
+
+  // Delete asks for confirmation first, and cancelling deletes nothing
   await row.getByRole('button', { name: 'Delete' }).click();
+  await expect(confirmation).toContainText('Delete user diner 02');
+  await confirmation.getByRole('button', { name: 'Cancel' }).click();
+  await expect(confirmation).toHaveCount(0);
+  await expect(row).toBeVisible();
+  expect(deletedIds).toEqual([]);
+
+  // Confirming sends the delete and refreshes the list
+  await row.getByRole('button', { name: 'Delete' }).click();
+  await expect(confirmation).toContainText('diner02@jwt.com');
+  expect(deletedIds).toEqual([]);
+  await confirmation.getByRole('button', { name: 'Confirm' }).click();
 
   await expect.poll(() => deletedIds).toEqual(['2']);
+  await expect(confirmation).toHaveCount(0);
   await expect(dialog.getByRole('row', { name: /diner 02/ })).toHaveCount(0);
   await expect(dialog).toContainText('diner 01');
   await expect(dialog).toContainText('diner 03');

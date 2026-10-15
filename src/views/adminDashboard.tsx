@@ -21,6 +21,7 @@ export default function AdminDashboard(props: Props) {
   const [userPage, setUserPage] = React.useState(1);
   const [userFilter, setUserFilter] = React.useState('*');
   const filterUserRef = React.useRef<HTMLInputElement>(null);
+  const [userToDelete, setUserToDelete] = React.useState<User | null>(null);
 
   React.useEffect(() => {
     (async () => {
@@ -55,12 +56,15 @@ export default function AdminDashboard(props: Props) {
     if (filterUserRef.current) {
       filterUserRef.current.value = '';
     }
+    setUserToDelete(null);
     await loadUsers(1, '*');
     HSOverlay.open(document.getElementById('hs-user-list-modal')!);
   }
 
-  async function deleteUser(user: User) {
-    await pizzaService.deleteUser(user);
+  async function confirmDeleteUser() {
+    if (!userToDelete) return;
+    await pizzaService.deleteUser(userToDelete);
+    setUserToDelete(null);
     // Step back a page when the last user on a later page was deleted
     const page = userList.users.length === 1 && userPage > 1 ? userPage - 1 : userPage;
     await loadUsers(page, userFilter);
@@ -170,7 +174,22 @@ export default function AdminDashboard(props: Props) {
                   <CloseIcon className="" />
                 </button>
               </div>
-              <div className="p-4 overflow-y-auto max-h-96 text-start">
+              {userToDelete && (
+                <div role="alert" className="m-4 mb-0 p-3 rounded-lg border border-orange-400 bg-orange-50 text-start text-sm text-gray-800">
+                  <p>
+                    Delete user <span className="font-semibold">{userToDelete.name}</span> ({userToDelete.email})? This cannot be undone.
+                  </p>
+                  <div className="mt-2 flex gap-x-2">
+                    <button type="button" className="px-2 py-1 text-sm font-semibold rounded-lg border border-orange-400 text-orange-400 hover:border-orange-800 hover:text-orange-800" onClick={confirmDeleteUser}>
+                      Confirm
+                    </button>
+                    <button type="button" className="px-2 py-1 text-sm font-semibold rounded-lg border border-gray-300 bg-white text-gray-800 hover:bg-gray-50" onClick={() => setUserToDelete(null)}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div className="p-4 overflow-y-auto max-h-60 text-start">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="uppercase text-neutral-100 bg-slate-400 border-b-2 border-gray-500">
                     <tr>
@@ -188,7 +207,7 @@ export default function AdminDashboard(props: Props) {
                         <td className="px-4 py-2 text-sm text-gray-800">{u.email}</td>
                         <td className="px-4 py-2 text-sm text-gray-800">{u.roles?.map((r) => r.role).join(', ')}</td>
                         <td className="px-4 py-2 text-end">
-                          <button type="button" className="px-2 py-1 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-1 border-orange-400 text-orange-400 hover:border-orange-800 hover:text-orange-800" onClick={() => deleteUser(u)}>
+                          <button type="button" className="px-2 py-1 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-1 border-orange-400 text-orange-400 hover:border-orange-800 hover:text-orange-800" onClick={() => setUserToDelete(u)}>
                             <TrashIcon />
                             Delete
                           </button>
