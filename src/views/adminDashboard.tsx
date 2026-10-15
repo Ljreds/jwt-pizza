@@ -59,6 +59,13 @@ export default function AdminDashboard(props: Props) {
     HSOverlay.open(document.getElementById('hs-user-list-modal')!);
   }
 
+  async function deleteUser(user: User) {
+    await pizzaService.deleteUser(user);
+    // Step back a page when the last user on a later page was deleted
+    const page = userList.users.length === 1 && userPage > 1 ? userPage - 1 : userPage;
+    await loadUsers(page, userFilter);
+  }
+
   async function filterUsers() {
     const value = filterUserRef.current?.value.trim();
     await loadUsers(1, value ? `*${value}*` : '*');
@@ -167,7 +174,7 @@ export default function AdminDashboard(props: Props) {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="uppercase text-neutral-100 bg-slate-400 border-b-2 border-gray-500">
                     <tr>
-                      {['Name', 'Email', 'Role'].map((header) => (
+                      {['Name', 'Email', 'Role', 'Action'].map((header) => (
                         <th key={header} scope="col" className="px-4 py-2 text-center text-xs font-medium">
                           {header}
                         </th>
@@ -180,12 +187,18 @@ export default function AdminDashboard(props: Props) {
                         <td className="px-4 py-2 text-sm text-gray-800">{u.name}</td>
                         <td className="px-4 py-2 text-sm text-gray-800">{u.email}</td>
                         <td className="px-4 py-2 text-sm text-gray-800">{u.roles?.map((r) => r.role).join(', ')}</td>
+                        <td className="px-4 py-2 text-end">
+                          <button type="button" className="px-2 py-1 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-1 border-orange-400 text-orange-400 hover:border-orange-800 hover:text-orange-800" onClick={() => deleteUser(u)}>
+                            <TrashIcon />
+                            Delete
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td colSpan={2} className="px-1 py-2">
+                      <td colSpan={3} className="px-1 py-2">
                         <input type="text" ref={filterUserRef} name="filterUser" placeholder="Filter users" className="px-2 py-1 text-sm border border-gray-300 rounded-lg" />
                         <button type="submit" className="ml-2 px-2 py-1 text-sm font-semibold rounded-lg border border-orange-400 text-orange-400 hover:border-orange-800 hover:text-orange-800" onClick={filterUsers}>
                           Submit
