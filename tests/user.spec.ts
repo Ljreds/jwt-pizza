@@ -222,7 +222,7 @@ test('updateAsAdmin', async ({ page }) => {
   await page.getByRole('button', { name: 'Login' }).click();
   await page.goto('/diner-dashboard');
 
-  await expect(page.getByRole('main')).toContainText('admin');
+  await expect(page.getByText('admin', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Edit' }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
