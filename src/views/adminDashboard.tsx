@@ -25,6 +25,11 @@ export default function AdminDashboard(props: Props) {
     })();
   }, [props.user, franchisePage]);
 
+  React.useEffect(() => {
+    // The modal only renders once the admin user has loaded, after the app-level autoInit has already run.
+    HSOverlay.autoInit();
+  }, [props.user]);
+
   function createFranchise() {
     navigate('/admin-dashboard/create-franchise');
   }

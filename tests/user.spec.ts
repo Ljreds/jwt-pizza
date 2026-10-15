@@ -185,5 +185,16 @@ test('listUsersAsAdmin', async ({ page }) => {
   await page.goto('/admin-dashboard');
 
   await page.getByRole('button', { name: 'Users' }).click();
-  await expect(page.getByRole('main')).toContainText('User List');
+
+  const dialog = page.getByRole('dialog', { name: 'User List' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('User List');
+
+  const adminRow = dialog.getByRole('row', { name: /pizza admin/ });
+  await expect(adminRow).toContainText('a@jwt.com');
+  await expect(adminRow).toContainText('admin');
+
+  const franchiseeRow = dialog.getByRole('row', { name: /pizza franchisee/ });
+  await expect(franchiseeRow).toContainText('f@jwt.com');
+  await expect(franchiseeRow).toContainText('franchisee');
 });
