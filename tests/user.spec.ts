@@ -1,4 +1,5 @@
 import { test, expect } from 'playwright-test-coverage';
+import type { Page } from '@playwright/test';
 import { basicInit } from './basicInit';
 
 test('updateUser', async ({ page }) => {
@@ -197,4 +198,82 @@ test('listUsersAsAdmin', async ({ page }) => {
   const franchiseeRow = dialog.getByRole('row', { name: /pizza franchisee/ });
   await expect(franchiseeRow).toContainText('f@jwt.com');
   await expect(franchiseeRow).toContainText('franchisee');
+});
+
+async function openUserListAsAdmin(page: Page) {
+  const requests: URL[] = [];
+  const allUsers = Array.from({ length: 12 }, (_, i) => {
+    const n = String(i + 1).padStart(2, '0');
+    return { id: String(i + 1), name: `diner ${n}`, email: `diner${n}@jwt.com`, roles: [{ role: 'diner' }] };
+  });
+  allUsers.push({ id: '13', name: 'pizza franchisee', email: 'f@jwt.com', roles: [{ role: 'franchisee' }] });
+
+  await basicInit(page);
+  await page.route(/\/api\/user(\?.*)?$/, async (route) => {
+    expect(route.request().method()).toBe('GET');
+    const url = new URL(route.request().url());
+    requests.push(url);
+    const pageNum = Number(url.searchParams.get('page') ?? 1);
+    const limit = Number(url.searchParams.get('limit') ?? 10);
+    const nameFilter = (url.searchParams.get('name') ?? '*').replace(/\*/g, '.*');
+    const matches = allUsers.filter((u) => new RegExp(`^${nameFilter}$`).test(u.name));
+    const start = (pageNum - 1) * limit;
+    await route.fulfill({ json: { users: matches.slice(start, start + limit), more: matches.length > start + limit } });
+  });
+
+  await page.getByRole('link', { name: 'Login' }).click();
+  await page.getByPlaceholder('Email address').fill('a@jwt.com');
+  await page.getByPlaceholder('Password').fill('admin');
+  await page.getByRole('button', { name: 'Login' }).click();
+  await page.goto('/admin-dashboard');
+  await page.getByRole('button', { name: 'Users' }).click();
+
+  const dialog = page.getByRole('dialog', { name: 'User List' });
+  await expect(dialog).toBeVisible();
+  return { dialog, requests };
+}
+
+test('listUsersPaging', async ({ page }) => {
+  const { dialog, requests } = await openUserListAsAdmin(page);
+  const previous = dialog.getByRole('button', { name: '«' });
+  const next = dialog.getByRole('button', { name: '»' });
+
+  // First page holds 10 of the 13 users
+  await expect(dialog).toContainText('diner 01');
+  await expect(dialog).toContainText('diner 10');
+  await expect(dialog).not.toContainText('diner 11');
+  await expect(previous).toBeDisabled();
+  await expect(next).toBeEnabled();
+
+  await next.click();
+  await expect(dialog).toContainText('diner 11');
+  await expect(dialog).toContainText('pizza franchisee');
+  await expect(dialog).not.toContainText('diner 01');
+  await expect(previous).toBeEnabled();
+  await expect(next).toBeDisabled();
+  expect(requests[requests.length - 1].searchParams.get('page')).toBe('2');
+
+  await previous.click();
+  await expect(dialog).toContainText('diner 01');
+  await expect(dialog).not.toContainText('diner 11');
+  await expect(previous).toBeDisabled();
+  expect(requests[requests.length - 1].searchParams.get('page')).toBe('1');
+});
+
+test('listUsersNameFilter', async ({ page }) => {
+  const { dialog, requests } = await openUserListAsAdmin(page);
+  const filter = dialog.getByPlaceholder('Filter users');
+
+  await filter.fill('franchisee');
+  await dialog.getByRole('button', { name: 'Submit' }).click();
+
+  await expect(dialog.getByRole('cell', { name: 'pizza franchisee', exact: true })).toBeVisible();
+  await expect(dialog).not.toContainText('diner 01');
+  expect(requests[requests.length - 1].searchParams.get('name')).toBe('*franchisee*');
+
+  // Clearing the filter lists everyone again
+  await filter.fill('');
+  await dialog.getByRole('button', { name: 'Submit' }).click();
+  await expect(dialog).toContainText('diner 01');
+  await expect(dialog).not.toContainText('pizza franchisee');
 });
