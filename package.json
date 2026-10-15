@@ -13,26 +13,25 @@
     "test:coverage": "nyc --reporter=json-summary --reporter=text playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "^1.40.0",
+    "@playwright/test": "1.49.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.6.4",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.19",
-    "nyc": "^18.0.0",
+    "nyc": "^14.1.1",
     "playwright-test-coverage": "^1.2.12",
     "postcss": "^8.4.38",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.5.4",
     "vite": "^8.3.4",
-    "vite-plugin-istanbul": "^9.0.1"
+    "vite-plugin-istanbul": "^2.8.0"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.3.3",
     "preline": "^5.0.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^7.18.3"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^7.18.4"
   },
   "repository": {
     "type": "git",

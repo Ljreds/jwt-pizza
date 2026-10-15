@@ -24,13 +24,7 @@ import Docs from '../views/docs';
 import Breadcrumb from '../components/breadcrumb';
 import { pizzaService } from '../service/service';
 import { Role, User } from '../service/pizzaService';
-import 'preline';
-
-declare global {
-  interface Window {
-    HSStaticMethods: any;
-  }
-}
+import { HSStaticMethods } from 'preline/non-auto';
 
 export default function App() {
   const [user, setUser] = React.useState<User | null>(null);
@@ -44,7 +38,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    window.HSStaticMethods.autoInit();
+    HSStaticMethods.autoInit();
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
