@@ -4,8 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import NotFound from './notFound';
 import Button from '../components/button';
 import { pizzaService } from '../service/service';
-import { Franchise, FranchiseList, Role, Store, User } from '../service/pizzaService';
-import { TrashIcon } from '../icons';
+import { Franchise, FranchiseList, Role, Store, User, UserList } from '../service/pizzaService';
+import { CloseIcon, TrashIcon } from '../icons';
+import { HSOverlay } from 'preline';
 
 interface Props {
   user: User | null;
@@ -16,6 +17,7 @@ export default function AdminDashboard(props: Props) {
   const [franchiseList, setFranchiseList] = React.useState<FranchiseList>({ franchises: [], more: false });
   const [franchisePage, setFranchisePage] = React.useState(0);
   const filterFranchiseRef = React.useRef<HTMLInputElement>(null);
+  const [userList, setUserList] = React.useState<UserList>({ users: [], more: false });
 
   React.useEffect(() => {
     (async () => {
@@ -35,6 +37,11 @@ export default function AdminDashboard(props: Props) {
     navigate('/admin-dashboard/close-store', { state: { franchise: franchise, store: store } });
   }
 
+  async function openUserList() {
+    setUserList(await pizzaService.getUsers(1, 10, '*'));
+    HSOverlay.open(document.getElementById('hs-user-list-modal')!);
+  }
+
   async function filterFranchises() {
     setFranchiseList(await pizzaService.getFranchises(franchisePage, 10, `*${filterFranchiseRef.current?.value}*`));
   }
@@ -44,7 +51,10 @@ export default function AdminDashboard(props: Props) {
     response = (
       <View title="Mama Ricci's kitchen">
         <div className="text-start py-8 px-4 sm:px-6 lg:px-8">
-          <h3 className="text-neutral-100 text-xl">Franchises</h3>
+          <div className="flex justify-between items-center">
+            <h3 className="text-neutral-100 text-xl">Franchises</h3>
+            <Button className="w-20 p-0" title="Users" onPress={openUserList} />
+          </div>
           <div className="bg-neutral-100 overflow-clip my-4">
             <div className="flex flex-col">
               <div className="-m-1.5 overflow-x-auto">
@@ -116,6 +126,42 @@ export default function AdminDashboard(props: Props) {
                     </table>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div role="dialog" aria-modal="true" aria-labelledby="user-list-title" id="hs-user-list-modal" className="hs-overlay hidden size-full fixed top-10 start-0 z-[80] overflow-x-hidden overflow-y-auto pointer-events-none">
+          <div className="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto min-h-[calc(100%-3.5rem)]">
+            <div className="w-full flex flex-col bg-white border shadow-sm rounded-xl pointer-events-auto">
+              <div className="flex justify-between items-center py-3 px-4 border-b bg-slate-200 rounded-t-xl">
+                <h3 id="user-list-title" className="font-bold text-gray-800">
+                  User List
+                </h3>
+                <button type="button" aria-label="Close" className="flex justify-center items-center size-7 text-sm font-semibold rounded-full border border-transparent text-gray-800 hover:bg-gray-100" data-hs-overlay="#hs-user-list-modal">
+                  <CloseIcon className="" />
+                </button>
+              </div>
+              <div className="p-4 overflow-y-auto max-h-96 text-start">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="uppercase text-neutral-100 bg-slate-400 border-b-2 border-gray-500">
+                    <tr>
+                      {['Name', 'Email', 'Role'].map((header) => (
+                        <th key={header} scope="col" className="px-4 py-2 text-center text-xs font-medium">
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {userList.users.map((u) => (
+                      <tr key={u.id}>
+                        <td className="px-4 py-2 text-sm text-gray-800">{u.name}</td>
+                        <td className="px-4 py-2 text-sm text-gray-800">{u.email}</td>
+                        <td className="px-4 py-2 text-sm text-gray-800">{u.roles?.map((r) => r.role).join(', ')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
