@@ -202,6 +202,7 @@ test('listUsersAsAdmin', async ({ page }) => {
 
 async function openUserListAsAdmin(page: Page) {
   const requests: URL[] = [];
+  const deletedIds: string[] = [];
   const allUsers = Array.from({ length: 12 }, (_, i) => {
     const n = String(i + 1).padStart(2, '0');
     return { id: String(i + 1), name: `diner ${n}`, email: `diner${n}@jwt.com`, roles: [{ role: 'diner' }] };
@@ -221,6 +222,17 @@ async function openUserListAsAdmin(page: Page) {
     await route.fulfill({ json: { users: matches.slice(start, start + limit), more: matches.length > start + limit } });
   });
 
+  await page.route(/\/api\/user\/\d+$/, async (route) => {
+    expect(route.request().method()).toBe('DELETE');
+    const id = new URL(route.request().url()).pathname.split('/').pop()!;
+    deletedIds.push(id);
+    const index = allUsers.findIndex((u) => u.id === id);
+    if (index >= 0) {
+      allUsers.splice(index, 1);
+    }
+    await route.fulfill({ json: { message: 'user deleted' } });
+  });
+
   await page.getByRole('link', { name: 'Login' }).click();
   await page.getByPlaceholder('Email address').fill('a@jwt.com');
   await page.getByPlaceholder('Password').fill('admin');
@@ -230,7 +242,7 @@ async function openUserListAsAdmin(page: Page) {
 
   const dialog = page.getByRole('dialog', { name: 'User List' });
   await expect(dialog).toBeVisible();
-  return { dialog, requests };
+  return { dialog, requests, deletedIds };
 }
 
 test('listUsersPaging', async ({ page }) => {
@@ -276,4 +288,17 @@ test('listUsersNameFilter', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Submit' }).click();
   await expect(dialog).toContainText('diner 01');
   await expect(dialog).not.toContainText('pizza franchisee');
+});
+
+test('deleteUser', async ({ page }) => {
+  const { dialog, deletedIds } = await openUserListAsAdmin(page);
+
+  const row = dialog.getByRole('row', { name: /diner 02/ });
+  await expect(row).toBeVisible();
+  await row.getByRole('button', { name: 'Delete' }).click();
+
+  await expect.poll(() => deletedIds).toEqual(['2']);
+  await expect(dialog.getByRole('row', { name: /diner 02/ })).toHaveCount(0);
+  await expect(dialog).toContainText('diner 01');
+  await expect(dialog).toContainText('diner 03');
 });

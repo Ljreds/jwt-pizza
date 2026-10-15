@@ -18,6 +18,9 @@ export default function AdminDashboard(props: Props) {
   const [franchisePage, setFranchisePage] = React.useState(0);
   const filterFranchiseRef = React.useRef<HTMLInputElement>(null);
   const [userList, setUserList] = React.useState<UserList>({ users: [], more: false });
+  const [userPage, setUserPage] = React.useState(1);
+  const [userFilter, setUserFilter] = React.useState('*');
+  const filterUserRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     (async () => {
@@ -42,9 +45,23 @@ export default function AdminDashboard(props: Props) {
     navigate('/admin-dashboard/close-store', { state: { franchise: franchise, store: store } });
   }
 
+  async function loadUsers(page: number, filter: string) {
+    setUserList(await pizzaService.getUsers(page, 10, filter));
+    setUserPage(page);
+    setUserFilter(filter);
+  }
+
   async function openUserList() {
-    setUserList(await pizzaService.getUsers(1, 10, '*'));
+    if (filterUserRef.current) {
+      filterUserRef.current.value = '';
+    }
+    await loadUsers(1, '*');
     HSOverlay.open(document.getElementById('hs-user-list-modal')!);
+  }
+
+  async function filterUsers() {
+    const value = filterUserRef.current?.value.trim();
+    await loadUsers(1, value ? `*${value}*` : '*');
   }
 
   async function filterFranchises() {
@@ -166,6 +183,24 @@ export default function AdminDashboard(props: Props) {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={2} className="px-1 py-2">
+                        <input type="text" ref={filterUserRef} name="filterUser" placeholder="Filter users" className="px-2 py-1 text-sm border border-gray-300 rounded-lg" />
+                        <button type="submit" className="ml-2 px-2 py-1 text-sm font-semibold rounded-lg border border-orange-400 text-orange-400 hover:border-orange-800 hover:text-orange-800" onClick={filterUsers}>
+                          Submit
+                        </button>
+                      </td>
+                      <td className="text-end text-sm font-medium">
+                        <button className="w-12 p-1 text-sm font-semibold rounded-lg border border-transparent bg-white text-grey border-grey m-1 hover:bg-orange-200 disabled:bg-neutral-300" onClick={() => loadUsers(userPage - 1, userFilter)} disabled={userPage <= 1}>
+                          «
+                        </button>
+                        <button className="w-12 p-1 text-sm font-semibold rounded-lg border border-transparent bg-white text-grey border-grey m-1 hover:bg-orange-200 disabled:bg-neutral-300" onClick={() => loadUsers(userPage + 1, userFilter)} disabled={!userList.more}>
+                          »
+                        </button>
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
