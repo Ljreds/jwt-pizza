@@ -98,10 +98,12 @@ class HttpPizzaService implements PizzaService {
     return this.callEndpoint(`/api/franchise?page=${page}&limit=${limit}&name=${nameFilter}`);
   }
 
+  // Query values are sent as-is except the name filter, which is URL-encoded because it may contain '*' or spaces.
   async getUsers(page: number = 1, limit: number = 10, nameFilter: string = '*'): Promise<UserList> {
     return this.callEndpoint(`/api/user?page=${page}&limit=${limit}&name=${encodeURIComponent(nameFilter)}`);
   }
 
+  // Deletes exactly one user by id. callEndpoint adds the auth token header.
   async deleteUser(user: User): Promise<void> {
     return this.callEndpoint(`/api/user/${user.id}`, 'DELETE');
   }

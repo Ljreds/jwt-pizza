@@ -76,6 +76,7 @@ type FranchiseList = {
   more: boolean;
 };
 
+// One page of users from GET /api/user. `more` is true when a next page exists, which drives the » button.
 type UserList = {
   users: User[];
   more: boolean;

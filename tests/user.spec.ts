@@ -6,16 +6,20 @@ type MockUser = { id: string; name: string; email: string; password: string; rol
 
 // In-memory stand-in for the auth and user endpoints, so a registered user can be updated and logged back in
 async function mockUserService(page: Page) {
+  // Everything lives in memory for the duration of one test
   const users: MockUser[] = [];
+  // token -> user id, so requests can be matched to the logged-in user
   const tokens = new Map<string, string>();
   let nextId = 10;
 
+  // Never send the password back to the browser, like the real API
   const publicUser = ({ password, ...user }: MockUser) => user;
   const issueToken = (user: MockUser) => {
     const token = `token-${user.id}-${tokens.size}`;
     tokens.set(token, user.id);
     return token;
   };
+  // Look up who is calling from the Authorization: Bearer <token> header
   const authedUser = (headers: Record<string, string>) => {
     const id = tokens.get((headers['authorization'] ?? '').split(' ')[1]);
     return users.find((u) => u.id === id);
@@ -233,8 +237,10 @@ test('updateAsAdmin', async ({ page }) => {
   await expect(page.getByRole('main')).toContainText('pizza admin updated');
 });
 
+// Basic check: admin clicks Users and sees the overlay with the mocked users and their roles.
 test('listUsersAsAdmin', async ({ page }) => {
   await basicInit(page);
+  // Mock GET /api/user with a fixed two-user list
   await page.route(/\/api\/user(\?.*)?$/, async (route) => {
     expect(route.request().method()).toBe('GET');
     await route.fulfill({
@@ -248,6 +254,7 @@ test('listUsersAsAdmin', async ({ page }) => {
     });
   });
 
+  // Log in as the admin defined in basicInit, then go to the dashboard
   await page.getByRole('link', { name: 'Login' }).click();
   await page.getByPlaceholder('Email address').fill('a@jwt.com');
   await page.getByPlaceholder('Password').fill('admin');
@@ -256,6 +263,7 @@ test('listUsersAsAdmin', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Users' }).click();
 
+  // The dialog is found by its accessible name, which comes from the 'User List' heading
   const dialog = page.getByRole('dialog', { name: 'User List' });
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText('User List');
@@ -269,9 +277,13 @@ test('listUsersAsAdmin', async ({ page }) => {
   await expect(franchiseeRow).toContainText('franchisee');
 });
 
+// Shared setup for the paging/filter/delete tests: mocks a 13-user server, logs in as admin and opens the overlay.
+// Returns the requests seen and ids deleted so tests can assert on what the UI sent.
 async function openUserListAsAdmin(page: Page) {
+  // Every GET /api/user URL the UI requested
   const requests: URL[] = [];
   const deletedIds: string[] = [];
+  // 12 diners + 1 franchisee = 13 users, i.e. two pages at 10 per page
   const allUsers = Array.from({ length: 12 }, (_, i) => {
     const n = String(i + 1).padStart(2, '0');
     return { id: String(i + 1), name: `diner ${n}`, email: `diner${n}@jwt.com`, roles: [{ role: 'diner' }] };
@@ -283,10 +295,12 @@ async function openUserListAsAdmin(page: Page) {
     expect(route.request().method()).toBe('GET');
     const url = new URL(route.request().url());
     requests.push(url);
+    // Behave like the backend: 1-based page, limit, and '*' wildcard filter on name
     const pageNum = Number(url.searchParams.get('page') ?? 1);
     const limit = Number(url.searchParams.get('limit') ?? 10);
     const nameFilter = (url.searchParams.get('name') ?? '*').replace(/\*/g, '.*');
     const matches = allUsers.filter((u) => new RegExp(`^${nameFilter}$`).test(u.name));
+    // `more` is true when matches remain beyond this page
     const start = (pageNum - 1) * limit;
     await route.fulfill({ json: { users: matches.slice(start, start + limit), more: matches.length > start + limit } });
   });
@@ -314,6 +328,7 @@ async function openUserListAsAdmin(page: Page) {
   return { dialog, requests, deletedIds };
 }
 
+// Paging: page 1 shows 10 users, » loads page 2 (the last 3), « returns. Buttons disable at the ends.
 test('listUsersPaging', async ({ page }) => {
   const { dialog, requests } = await openUserListAsAdmin(page);
   const previous = dialog.getByRole('button', { name: '«' });
@@ -341,6 +356,7 @@ test('listUsersPaging', async ({ page }) => {
   expect(requests[requests.length - 1].searchParams.get('page')).toBe('1');
 });
 
+// Filter: typing 'franchisee' must request name=*franchisee* and show only the matching user.
 test('listUsersNameFilter', async ({ page }) => {
   const { dialog, requests } = await openUserListAsAdmin(page);
   const filter = dialog.getByPlaceholder('Filter users');
@@ -359,6 +375,7 @@ test('listUsersNameFilter', async ({ page }) => {
   await expect(dialog).not.toContainText('pizza franchisee');
 });
 
+// Delete: needs a confirm step; Cancel sends nothing, Confirm sends exactly one DELETE for that user.
 test('deleteUser', async ({ page }) => {
   const { dialog, deletedIds } = await openUserListAsAdmin(page);
   const row = dialog.getByRole('row', { name: /diner 02/ });
